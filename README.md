@@ -22,7 +22,27 @@ Over time, we may add:
 TODO
 ----
 
-    
+- Write SAT solver (gatlin) -------------------- HERE  
+
+- Test  SAT solver
+
+- Write EQ solver 
+    - Write HashCons
+    - Write UnionFind
+
+- Test  EQ solver
+- Write NO = SAT + EQ
+- Test  NO solver
+
+- Add   UIF/CC to EQ solver
+- Test  EUF 
+- Test  SAT+EUF 
+- Write DIFF solver
+- Test  DIFF solver
+- Test  SAT+EUF+DIFF
+
+
+
 -----------------------------------------------------------------
 -----------------------------------------------------------------
 -----------------------------------------------------------------

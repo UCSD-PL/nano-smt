@@ -101,7 +101,9 @@ type SmtFormula = (CnfFormula, TheoryFormula)
 -- | Solver Results ------------------------------------------------------
 --------------------------------------------------------------------------
 
-data SatResult      = Unsat | Asgn [Literal]        deriving (Show)
+type Assignment     = [Literal]
+
+data SatResult      = Unsat | Asgn Assignment       deriving (Show)
 
 data TheoryResult a = Sat   | Blocking [a]          deriving (Show)
 
@@ -199,4 +201,9 @@ instance Ord Equality where
   compare = compare `on` eqSig
 
 eqSig e = (hid $ lhs e, hid $ rhs e)
+
+------------------------------------------------------------------------------------
+-- Candidate Test Values for Each Type ---------------------------------------------
+------------------------------------------------------------------------------------
+
 
