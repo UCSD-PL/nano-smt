@@ -16,3 +16,16 @@ Over time, we may add:
 
 - Linear Arithmetic / Simplex
 
+---------------------------------------------------------------------------------
+
+TODO
+
+    sat_solver :: CNF_Formula -> SAT_Result
+
+
+
+
+
+    
+
+
