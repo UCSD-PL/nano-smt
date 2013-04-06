@@ -3,6 +3,10 @@
 
 module Language.Nano.SMT.Types where
 
+import Data.Monoid
+import Data.Function            (on)
+import Language.Nano.SMT.Misc   (sortNub)
+
 --------------------------------------------------------------------------
 -- | Theory Entities -----------------------------------------------------
 --------------------------------------------------------------------------
@@ -40,24 +44,29 @@ data Atom      = Rel Relation [Expr]
 
 -- | Theory Cubes
 
-data TheoryCube a  = [(a, Atom)]
+type TheoryCube a  = [(a, Atom)]
 
 -- | Theory Formula
 
 data TheoryFormula = TheoryCube PVar
 
-
 --------------------------------------------------------------------------
--- | Source Level Formulas -----------------------------------------------
+-- | Source Level Formulas and Results -----------------------------------
 --------------------------------------------------------------------------
 
 -- | These will only be used for parsing.
 
 data Formula   = Atom Atom
-               | PVar PropVar
+               | Prop PVar
                | And  [Formula]
                | Or   [Formula]
                | Not  Formula
+                 deriving (Eq, Show)
+
+-- | Output Result
+
+data Result    = Satisfiable 
+               | Unsatisfiable
                  deriving (Eq, Show)
 
 --------------------------------------------------------------------------
@@ -71,7 +80,7 @@ newtype PVar     = P Int
 
 -- | Literals
 
-data Literal     = Pos PropVar | Neg PropVar 
+data Literal     = Pos PVar | Neg PVar 
                    deriving (Eq, Ord, Show)
     
 -- | Clauses 
@@ -80,7 +89,7 @@ type Clause      = [Literal]
 
 -- | CNF Formulas
 
-type CNF_Formula = [Clause]
+type CnfFormula = [Clause]
 
 --------------------------------------------------------------------------
 -- | SMT Formulas --------------------------------------------------------
@@ -97,13 +106,8 @@ data SatResult      = Unsat | Asgn [Literal]        deriving (Show)
 data TheoryResult a = Sat   | Blocking [a]          deriving (Show)
 
 --------------------------------------------------------------------------
-
--- | Returns either a satisfying assignment or `Unsat` (which could
---   carry a resolution proof...
-
-sat_solver    :: CNF_Formula -> SAT_Result
-
----------------------------------------------------------------
+-- | Hash-Consed Formulas Shared Across Theory Solvers and NO ------------
+--------------------------------------------------------------------------
 
 type HId = Int
 
@@ -115,7 +119,7 @@ data HExpr = HVar TVar             HId
 data HAtom = HRel Relation [HExpr] HId
              deriving (Show)
 
-instance Hashed a where
+class Hashed a where
   hid :: a -> HId
 
 instance Hashed HExpr where
@@ -126,11 +130,21 @@ instance Hashed HExpr where
 instance Hashed HAtom where
   hid (HRel _ _ i) = i
 
-instance Hashed a => Eq a where
-  x == x' = hid x == hid x'
 
-instance Hashed a => Ord a where
-  compare x x' = compare (hid x) (hid x')
+hashEqual x x'   = hid x == hid x'
+hashCompare x x' = compare (hid x) (hid x')
+
+instance Eq HExpr where
+  (==) = hashEqual
+
+instance Eq HAtom where
+  (==) = hashEqual
+  
+instance Ord HExpr where
+  compare = hashCompare
+
+instance Ord HAtom where
+  compare = hashCompare
 
 ----------------------------------------------------------------------
 -- | API Behavior of a Single Theory Solver --------------------------
@@ -149,31 +163,40 @@ data Solver = forall st. (IsSolver st) => SS st
 -- | Theory solver either returns (all) new discovered equalities,
 --   or a contradiction if one was found (together with the cause).
 
-data SolveResult = Eqs    [(Equality, Cause)] 
+data SolveResult = Eqs    [Equality] 
                  | Contra Cause
 
 -- | Data type for representing @Equality@ between two (hash-consed) terms
 
-newtype Equality = Eq (HExpr, HExpr) -- ^ Canonical ordering by HId 
+data Equality = Equal { lhs   :: HExpr -- ^ Canonical ordering of lhs/rhs
+                      , rhs   :: HExpr -- ^ {v: HExpr | (hid lhs) <= (hid v)}
+                      , cause :: Cause -- ^ Explanation of equality
+                      }
+
+-- | Smart constructor for creating @Equality@ values
+
+equal x y c 
+  | hid x < hid y = Equal x y c
+  | otherwise     = Equal y x c 
 
 -- | Data type to explain how an equality was deduced; required to generate
 --   blocking/conflict clause (and if you so desire, a proof)
 
-data Cause       = [HAtom]
+type Cause       = [HAtom]
 
 -- | Make this instance to combine results from different theory solvers.
 
 instance Monoid SolveResult where
-  mempty                  = Eqs []
-  mappend c@(Contra _) _  = c
-  mappend _ c@(Contra _)  = c
-  mappend (Eq xs) (Eq ys) = Eq $ sortNub $ xs ++ ys
-
--- | Smart constructor for creating @Equality@ values
-
-eq x y | hid x < hid y = Eq (x, y)
-       | otherwise     = Eq (y, x) 
+  mempty                    = Eqs []
+  mappend c@(Contra _) _    = c
+  mappend _ c@(Contra _)    = c
+  mappend (Eqs xs) (Eqs ys) = Eqs $ sortNub $ xs ++ ys
 
 instance Eq Equality where 
-  (Eq (e1, e2)) == (Eq (e1', e2')) = (e1 == e1') && (e2 == e2') 
+  (==)    = (==) `on` eqSig
+
+instance Ord Equality where 
+  compare = compare `on` eqSig
+
+eqSig e = (hid $ lhs e, hid $ rhs e)
 
