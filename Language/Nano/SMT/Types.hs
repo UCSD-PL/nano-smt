@@ -5,7 +5,7 @@ module Language.Nano.SMT.Types where
 
 import Data.Monoid
 import Data.Function            (on)
-import Language.Nano.SMT.Misc   (sortNub)
+import Language.Nano.SMT.Misc   (errorstar, sortNub)
 
 --------------------------------------------------------------------------
 -- | Theory Entities -----------------------------------------------------
@@ -75,14 +75,23 @@ data Result    = Satisfiable
 
 -- | Propositional Variables
 
-newtype PVar     = P Int
-                   deriving (Eq, Ord, Show)
+type PVar     = Int
 
 -- | Literals
 
-data Literal     = Pos PVar | Neg PVar 
-                   deriving (Eq, Ord, Show)
+data Literal  = Pos PVar | Neg PVar 
+                deriving (Eq, Ord, Show)
+   
+neg (Pos x) = Neg x
+neg (Neg x) = Pos x
+
+cnf :: [[Int]] -> CnfFormula
+cnf = map (map lit) 
     
+lit n | n > 0     = Pos n
+      | n < 0     = Neg (-n)
+      | otherwise = errorstar "Cannot convert 0 to literal"
+
 -- | Clauses 
 
 type Clause      = [Literal]
@@ -201,9 +210,5 @@ instance Ord Equality where
   compare = compare `on` eqSig
 
 eqSig e = (hid $ lhs e, hid $ rhs e)
-
-------------------------------------------------------------------------------------
--- Candidate Test Values for Each Type ---------------------------------------------
-------------------------------------------------------------------------------------
 
 

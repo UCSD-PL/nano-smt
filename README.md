@@ -22,9 +22,9 @@ Over time, we may add:
 TODO
 ----
 
-- Write SAT solver (gatlin) -------------------- HERE  
+- Write SAT solver   
 
-- Test  SAT solver
+- Test  SAT solver -------------------- HERE
 
 - Write EQ solver 
     - Write HashCons

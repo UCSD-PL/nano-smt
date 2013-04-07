@@ -16,10 +16,8 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 executable nano-smt
-  -- main-is:             
-  -- other-modules:       
   build-depends:       base ==4.5.*, pretty, hashable, unordered-containers, 
-                       filepath, ansi-terminal, process
+                       filepath, ansi-terminal, process, HUnit 
 
   extensions:          ExistentialQuantification, 
                        FlexibleInstances, 
@@ -27,7 +25,30 @@ executable nano-smt
                        DeriveDataTypeable,
                        TupleSections,
                        NoMonomorphismRestriction,
-                       ScopedTypeVariables
+                       ScopedTypeVariables,
+                       BangPatterns
 
   ghc-options:         -W -O2  
   Main-is:             NanoSMT.hs
+
+Library
+  build-depends:       base ==4.5.*, pretty, hashable, unordered-containers, 
+                       filepath, ansi-terminal, process, HUnit 
+
+  extensions:          ExistentialQuantification, 
+                       FlexibleInstances, 
+                       UndecidableInstances,
+                       DeriveDataTypeable,
+                       TupleSections,
+                       NoMonomorphismRestriction,
+                       ScopedTypeVariables,
+                       BangPatterns
+
+  ghc-options:         -W -O2  
+ 
+   
+  Exposed-Modules:     Language.Nano.SMT.Types,
+                       Language.Nano.SMT.SAT,
+                       Language.Nano.SMT.SMT,
+                       -- Language.Nano.SMT.NelsonOppen,
+                       Language.Nano.SMT.Tests

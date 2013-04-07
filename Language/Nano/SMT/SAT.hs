@@ -2,12 +2,16 @@
 
 module Language.Nano.SMT.SAT (sat_solver) where
 
+import Language.Nano.SMT.Types
+import Data.Maybe
+import Control.Applicative      ((<$>))
+
 -- | The top-level sat_solver API wrapping `dpll`.
 --   Returns either a satisfying assignment `Asgn lits` 
 --   or `Unsat`, which could carry a resolution proof...
 
 sat_solver   :: CnfFormula -> SatResult
-sat_solver f = dpll $ SolverState f []
+sat_solver f = maybe Unsat Asgn $! dpll $! SolverState f [] 
 
 {-# INLINE sat_solver #-}
 
@@ -18,7 +22,7 @@ sat_solver f = dpll $ SolverState f []
 -- | The state of a solver at any given time is a subset of 
 --   the original formula and the list of literals considered true.
 
-data SolverState = SS { 
+data SolverState = SolverState { 
     formula      :: !CnfFormula  -- ^ Subset of original formula with 
                                  --   still "unsat" clauses and literals.
   , assignment   :: !Assignment  -- ^ Subset of literals set to "true" 
@@ -26,27 +30,26 @@ data SolverState = SS {
   } deriving (Show)
 
 
+-- | DPLL algorithm: back-tracking search with unit-propagation 
+
 ----------------------------------------------------------------------------------------
 dpll :: SolverState -> Maybe Assignment 
 ----------------------------------------------------------------------------------------
 
--- | DPLL algorithm: back-tracking search with unit-propagation 
-
-dpll !ss@(SS f lits)  
-  | solved f  = Just lits
+dpll !ss  
+  | solved f  = Just $ assignment ss 
   | contra f  = Nothing 
   | otherwise = first [dpll $! setLiteral l ss | l <- [lit, neg lit]]
   where 
+    f         = formula ss 
     lit       = chooseLiteral f
     first     = listToMaybe . catMaybes   
-       
-{-# INLINE tryLiteral #-}
 
 -- | `setLiteral` updates the assignment to set the literal to true, 
 --    and then performs `unitPropagate` 
 
 setLiteral      :: Literal -> SolverState -> SolverState 
-setLiteral l st = unitPropagate $! SolverState (simplify f l) (l : lits) 
+setLiteral l st = unitPropagate $! SolverState (simplify l f) (l : lits) 
   where
     lits        = assignment st
     f           = formula    st
@@ -114,7 +117,7 @@ simplify !l        = simpLits l . simpClaus l
   @-}
 
 
-{-@ data State = SS { 
+{-@ data SolverState = SolverState { 
       formula      :: !CnfFormula  
     , assignment   :: {v: Assignment | (Disjoint (pvars formula) (pvars v)) } 
     } 
