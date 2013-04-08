@@ -104,6 +104,9 @@ eqCause = undefined
 --                (_,cy) <- rootCause y
 --                return  $ cx ++ cy
 
+-- proofLink : {v: HExpr | v hasParent } -> CC Cause 
+proofLink x = do (y, c) <- link
+    
 ------------------------------------------------------------------
 root    :: HExpr -> CC HExpr
 ------------------------------------------------------------------
