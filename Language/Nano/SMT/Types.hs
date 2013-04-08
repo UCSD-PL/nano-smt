@@ -7,7 +7,7 @@ import Data.Monoid
 import Data.Function            (on)
 import Language.Nano.SMT.Misc   (errorstar, sortNub)
 
---------------------------------------------------------------------------
+-------------------------------------------------------------------------
 -- | Theory Entities -----------------------------------------------------
 --------------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ lit n | n > 0     = Pos n
 
 -- | Clauses 
 
-type Clause      = [Literal]
+type Clause       = [Literal]
 
 -- | CNF Formulas
 
@@ -140,7 +140,6 @@ instance Hashed HExpr where
 
 instance Hashed HAtom where
   hid (HRel _ _ i) = i
-
 
 hashEqual x x'   = hid x == hid x'
 hashCompare x x' = compare (hid x) (hid x')
@@ -193,7 +192,7 @@ equal x y c
 -- | Data type to explain how an equality was deduced; required to generate
 --   blocking/conflict clause (and if you so desire, a proof)
 
-type Cause       = [HAtom]
+type Cause       = [HId]
 
 -- | Make this instance to combine results from different theory solvers.
 

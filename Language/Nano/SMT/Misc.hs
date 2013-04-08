@@ -311,6 +311,7 @@ hashMapMapKeys f    = M.fromList . fmap (mapFst f) . M.toList
 applyNonNull def _ [] = def
 applyNonNull _   f xs = f xs
 
+concatMapM   :: (Monad m, Functor m) => (a -> f [b]) -> [a] -> m [b]
 concatMapM f = fmap concat . mapM f 
 
 

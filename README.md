@@ -24,13 +24,14 @@ TODO
 
 - Write SAT solver   
 
-- Test  SAT solver -------------------- HERE
+- Test  SAT solver 
 
-- Write EQ solver 
+- Write EQ solver --------------------------- HERE
     - Write HashCons
     - Write UnionFind
 
 - Test  EQ solver
+
 - Write NO = SAT + EQ
 - Test  NO solver
 

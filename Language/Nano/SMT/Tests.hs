@@ -24,20 +24,24 @@ satTest i (b, f)    = name ~: name ~: b ~=? exec f
 
 satTests :: [(Bool , CnfFormula)]
 satTests 
-  =  [ (False, [[]])
-     , (True , [[Pos 1, Pos 2]
-               ,[Neg 1, Pos 3]
-               ,[Neg 3]      ])
-     , (False, [[Pos 1]
-               ,[Neg 1]])
-     , (True , [[Neg 9 , Pos 1 , Pos 2]     
-               ,[Pos 9 , Pos 2 , Pos 3]  
-               ,[Pos 9 , Pos 2 , Neg 3]      
-               ,[Pos 9 , Neg 2 , Pos 3]        
-               ,[Pos 9 , Neg 2 , Neg 3]     
-               ,[Neg 1 , Neg 2 , Pos 3]      
-               ,[Neg 9 , Pos 1 , Neg 2]       
-               ,[Neg 9 , Neg 1 , Pos 2]])
+  =  [ (False, cnf [[]])
+     
+     , (True , cnf [[1 , 2]
+                   ,[-1, 3]
+                   ,[-3   ]])
+     
+     , (False, cnf [[ 1]
+                   ,[-1]])
+     
+     , (True , cnf [[-9, 1, 2]     
+                   ,[ 9, 2, 3]  
+                   ,[ 9, 2,-3]      
+                   ,[ 9,-2, 3]        
+                   ,[ 9,-2,-3]     
+                   ,[-1,-2, 3]      
+                   ,[-9, 1,-2]       
+                   ,[-9,-1, 2]])
+     
      , (True , cnf [ [1     ,   4]
                    , [1 , -3,  -8]
                    , [1 ,  8,  12]
