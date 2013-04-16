@@ -26,15 +26,15 @@ TODO
 
 - Test  SAT solver 
 
-- Write EQ solver --------------------------- HERE
+- Write EQ solver    
     - Write HashCons
     - Write UnionFind
 
-- Test  EQ solver
-
+- Test  EQ solver       <----------------------------- HERE
 - Write NO = SAT + EQ
 - Test  NO solver
 
+---------------------------
 - Add   UIF/CC to EQ solver
 - Test  EUF 
 - Test  SAT+EUF 

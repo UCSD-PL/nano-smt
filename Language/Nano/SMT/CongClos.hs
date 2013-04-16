@@ -4,6 +4,14 @@ module Language.Nano.SMT.CongClos () where
 
 import qualified Data.HashMap.Strict as M
 import qualified Data.HashSet        as S
+import Control.Monad.State
+import Data.Monoid
+import Data.List                     (find)
+import Control.Applicative           ((<$>))
+
+import Language.Nano.SMT.Misc
+import Language.Nano.SMT.Types
+import Control.Exception             (assert)
 
 instance IsSolver CCState where
   init = initialState
@@ -17,9 +25,9 @@ type CC      = State CCState
 data EqCause = EC { src :: HExpr, dst :: HExpr, cause :: HId }
 
 data CCState = CCState {
-    parent   :: M.Map HExpr (HExpr, EqCause)   
-  , diseqs   :: S.Set (HExpr, HExpr, HId) 
-  , elements :: M.Map HExpr (S.Set HExpr)
+    parent   :: M.HashMap HExpr (HExpr, EqCause)   
+  , diseqs   :: S.HashSet (HExpr, HExpr, HId) 
+  , elements :: M.HashMap HExpr (S.HashSet HExpr)
   }
 
 ------------------------------------------------------------------
@@ -28,7 +36,7 @@ initialState :: CCState
 
 -- | Initial State of Congruence Closure Solver
 
-initialState = CCState M.empty S.empty
+initialState = CCState M.empty S.empty M.empty
 
 ------------------------------------------------------------------
 updateState :: [HAtom] -> CCState -> (SolveResult, CCState)
@@ -39,7 +47,8 @@ updateState :: [HAtom] -> CCState -> (SolveResult, CCState)
 updateState = runState . addAtoms
 
 addAtoms    :: [HAtom] -> CC SolveResult
-addAtoms as = do rs    <- mapM addAtom atoms
+
+addAtoms as = do rs    <- mapM addAtom as
                  r     <- checkContra
                  return $ mconcat $ r : rs
 
@@ -61,11 +70,11 @@ addEq x y i = do xr    <- root x
                  elts  <- elements <$> get
                  let xs = M.lookupDefault (S.singleton xr) xr elts
                  let ys = M.lookupDefault (S.singleton xr) xr elts
-                 put    $ st { parent   = M.add xr (yr, EC x y i)  par  }
-                             { elements = M.add yr (S.union xs ys) elts }
+                 modify $ \st -> st { parent   = M.insert xr (yr,  EC x y i) par  }
+                                    { elements = M.insert yr (S.union xs ys) elts }
                  Eqs   <$> equates xs ys
 
-equates       :: S.Set HExpr -> S.Set HExpr -> CC [Equality] 
+equates       :: S.HashSet HExpr -> S.HashSet HExpr -> CC [Equality] 
 
 equates xs ys = forM xys $ \(x, y) -> equal x y <$> eqCause x y
   where 
@@ -76,52 +85,66 @@ equates xs ys = forM xys $ \(x, y) -> equal x y <$> eqCause x y
 addNe :: HExpr -> HExpr -> HId -> CC SolveResult 
 ------------------------------------------------------------------
 
-addNe x y i = modify $ \st -> st {diseqs = S.add (x, y, i) (diseqs st)}
+addNe x y i = do modify $ \st -> st {diseqs = S.insert (x, y, i) (diseqs st)}
+                 checkContra
 
 ------------------------------------------------------------------
 checkContra :: CC SolveResult 
 ------------------------------------------------------------------
 
 checkContra 
-  = do xyis <- (S.toList . diseqs) <$> get
-       rs   <- mapM checkContra' xyis 
+  = do xyis  <- S.toList . diseqs <$> get
+       rs    <- forM xyis $ \(x, y, i) -> do
+                 xr <- root x
+                 yr <- root y
+                 if (xr == yr)
+                   then (Contra . (i :)) <$> eqCause x y
+                   else return mempty
        return $ mconcat rs
-                 
-checkContra' (x,y,i) 
-  = do xr <- root x
-       yr <- root y
-       if (xr == yr)
-         then (Contra . (i :)) <$> eqCause x y
-         else return mempty
-
 
 ------------------------------------------------------------------
+-- | Generating the Equality Causes ------------------------------
+------------------------------------------------------------------
+
 eqCause :: HExpr -> HExpr -> CC Cause 
-------------------------------------------------------------------
-eqCause = undefined
+eqCause x y = do r     <- ancestor x y
+                 xs    <- pathCause <$> getPath x r
+                 ys    <- pathCause <$> getPath y r
+                 return $ xs ++ ys
 
--- eqCause x = do (_,cx) <- rootCause x
---                (_,cy) <- rootCause y
---                return  $ cx ++ cy
+linkCause x     = do Just (y, EC x' y' i) <- getParent x
+                     cx    <- pathCause <$> getPath x' x
+                     cy    <- pathCause <$> getPath y' y
+                     return $ (i : (cx ++ cy))
 
--- proofLink : {v: HExpr | v hasParent } -> CC Cause 
-proofLink x = do (y, c) <- link
-    
-------------------------------------------------------------------
-root    :: HExpr -> CC HExpr
-------------------------------------------------------------------
-root x = fst <$> rootCause x
+-- pathCause xs    = concatMapM linkCause xs 
+pathCause = undefined
+
+------------------------------------------------------------------------
+-- | Traversing the Parent Links ---------------------------------------
+------------------------------------------------------------------------
+
+root          :: HExpr -> CC HExpr
+root x        = do px <- getParent x
+                   maybe (return x) (root . fst) px
 
 
-------------------------------------------------------------------
-rootCause :: HExpr -> CC HExpr
-------------------------------------------------------------------
-rootCause x 
-  = do p <- parent <$> get
-       case M.lookup x p of 
-         Just (x', c) -> do (x', is) <- rootCause x'
-                            return (x', cause c : is)
-         Nothing      -> return (x, [])
+getParent x   = do p     <- parent <$> get
+                   return $ M.lookup x p
 
+getPath x r 
+  | x == r    = return []
+  | otherwise = do Just (xp,_) <- getParent x
+                   return       $ x : getPath xp r
+ 
+ancestor      :: HExpr -> HExpr -> CC HExpr 
+
+ancestor x y  = do xr <- root x
+                   yr <- root y
+                   px <- getPath x xr
+                   py <- getPath y yr
+                   case find (`elem` py) px of
+                     Just r  -> return r
+                     Nothing -> return $ assert (xr == yr) xr
 
 
