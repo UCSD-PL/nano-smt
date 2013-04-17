@@ -106,23 +106,24 @@ checkContra
 -- | Generating the Equality Causes ------------------------------
 ------------------------------------------------------------------
 
-eqCause :: HExpr -> HExpr -> CC Cause 
-eqCause x y = do r     <- ancestor x y
-                 xs    <- pathCause <$> getPath x r
-                 ys    <- pathCause <$> getPath y r
-                 return $ xs ++ ys
+eqCause      :: HExpr -> HExpr -> CC Cause 
+eqCause x y  = do r     <- ancestor x y
+                  xs    <- pathCause =<< getPath x r
+                  ys    <- pathCause =<< getPath y r
+                  return $ xs ++ ys
 
-linkCause x     = do Just (y, EC x' y' i) <- getParent x
-                     cx    <- pathCause <$> getPath x' x
-                     cy    <- pathCause <$> getPath y' y
-                     return $ (i : (cx ++ cy))
+linkCause    :: HExpr -> CC Cause
+linkCause x  = do Just (y, EC x' y' i) <- getParent x
+                  cx    <- pathCause  =<< getPath x' x
+                  cy    <- pathCause  =<< getPath y' y
+                  return $ (i : (cx ++ cy))
 
--- pathCause xs    = concatMapM linkCause xs 
-pathCause = undefined
+pathCause    :: [HExpr] -> CC Cause
+pathCause xs = concatMapM linkCause xs 
 
-------------------------------------------------------------------------
--- | Traversing the Parent Links ---------------------------------------
-------------------------------------------------------------------------
+------------------------------------------------------------------
+-- | Traversing the Parent Links ---------------------------------
+------------------------------------------------------------------
 
 root          :: HExpr -> CC HExpr
 root x        = do px <- getParent x
@@ -134,8 +135,8 @@ getParent x   = do p     <- parent <$> get
 
 getPath x r 
   | x == r    = return []
-  | otherwise = do Just (xp,_) <- getParent x
-                   return       $ x : getPath xp r
+  | otherwise = do Just (xp,_) <-  getParent x
+                   (x :)       <$> getPath xp r
  
 ancestor      :: HExpr -> HExpr -> CC HExpr 
 

@@ -15,7 +15,6 @@ with a Nelson-Oppen combination of theory solvers for
 Over time, we may add:
 
 - Fancy SAT heuristics like non-chronological backtrack, etc.
-
 - Linear Arithmetic via Simplex.
 
 
@@ -27,14 +26,15 @@ TODO
 - Test  SAT solver 
 
 - Write EQ solver    
-    - Write HashCons
     - Write UnionFind
-
-- Test  EQ solver       <----------------------------- HERE
+    - Write HashCons [see undefined in NelsonOppen] <--------- HEREHEREHEREHERE
+        
+- Test  EQ solver       
 - Write NO = SAT + EQ
 - Test  NO solver
 
 ---------------------------
+
 - Add   UIF/CC to EQ solver
 - Test  EUF 
 - Test  SAT+EUF 

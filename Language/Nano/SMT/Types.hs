@@ -132,19 +132,25 @@ data HExpr = HVar TVar             HId
 data HAtom = HRel Relation [HExpr] HId
              deriving (Show)
 
--- class Hashed a where
---   hid :: a -> HId
+class Hashed a where
+  hid :: a -> HId
+
+instance Hashed HExpr where
+  hid (HVar _   i) = i
+  hid (HCon _   i) = i
+  hid (HOp  _ _ i) = i
+
+instance Hashed HAtom where
+  hid (HRel _ _ i) = i
 
 instance Hashable HExpr where
-  hash (HVar _   i) = i
-  hash (HCon _   i) = i
-  hash (HOp  _ _ i) = i
+  hashWithSalt _ = hid
 
 instance Hashable HAtom where
-  hash (HRel _ _ i) = i
+  hashWithSalt _ = hid
 
-hashEqual x x'   = hash x == hash x'
-hashCompare x x' = compare (hash x) (hash x')
+hashEqual x x'   = hid x == hid x'
+hashCompare x x' = compare (hid x) (hid x')
 
 instance Eq HExpr where
   (==) = hashEqual
@@ -188,7 +194,7 @@ data Equality = Equal { lhs   :: HExpr -- ^ Canonical ordering of lhs/rhs
 -- | Smart constructor for creating @Equality@ values
 
 equal x y c 
-  | hash x < hash y = Equal x y c
+  | hid x < hid y = Equal x y c
   | otherwise     = Equal y x c 
 
 -- | Data type to explain how an equality was deduced; required to generate
@@ -210,6 +216,6 @@ instance Eq Equality where
 instance Ord Equality where 
   compare = compare `on` eqSig
 
-eqSig e = (hash $ lhs e, hash $ rhs e)
+eqSig e = (hid $ lhs e, hid $ rhs e)
 
 

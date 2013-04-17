@@ -6,3 +6,4 @@ import Language.Nano.SMT.Types
 
 smt_solver :: Formula -> Result
 smt_solver = undefined
+
